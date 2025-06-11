@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>সাব মিটার বিল ক্যালকুলেটর</title>
+  <style>
+    :root { --bg-light: #f5f5f5; --text-light: #000;
+            --container-bg-light: #fff; --input-bg-light: #fff; --input-text-light: #000;
+            --bg-dark: #121212; --text-dark: #e0e0e0;
+            --container-bg-dark: #1e1e1e; --input-bg-dark: #2a2a2a; --input-text-dark: #e0e0e0; }
+    body { font-family: Arial, sans-serif; margin:0; padding:0;
+           display:flex; justify-content:center; align-items:flex-start; min-height:100vh;
+           background:var(--bg-light); color:var(--text-light); transition:.3s; }
+    body.dark-mode { background:var(--bg-dark); color:var(--text-dark); }
+    .container { background:var(--container-bg-light); margin:20px; padding:20px;
+                 border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1);
+                 max-width:400px; width:100%; transition:.3s; }
+    body.dark-mode .container { background:var(--container-bg-dark);
+                               box-shadow:0 2px 8px rgba(0,0,0,0.5); }
+    h1 { font-size:1.5rem; margin-bottom:1rem; text-align:center; }
+    .field { margin-bottom:1rem; }
+    label { font-size:1.2rem; display:block; margin-bottom:0.5rem; font-weight:bold; }
+    input[type="number"], input[type="date"] { font-size:1rem; height:50px;
+        padding:0.5rem; border:1px solid #ccc; border-radius:4px;
+        background:var(--input-bg-light); color:var(--input-text-light);
+        transition:.3s; width:100%; box-sizing:border-box; }
+    body.dark-mode input { background:var(--input-bg-dark); color:var(--input-text-dark);
+                          border:1px solid #444; }
+    .result {
+  font-weight: bold;
+
+  color: red;
+ font-size:1.1rem; margin-top:1rem; padding:0.5rem;
+              background:#e9ffe9; border:1px solid #b2ffb2; border-radius:4px;
+              text-align:center; }
+    .buttons { display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-top:1rem; }
+    .btn { flex:1; background:#007bff; color:white; border:none; padding:10px;
+           font-size:1rem; border-radius:5px; cursor:pointer; display:flex;
+           align-items:center; justify-content:center; gap:5px; }
+    .btn:hover { opacity:0.9; }
+    .btn-clear { background:#ff4d4d; }
+    .btn-history-clear { background:#ff9900; margin-top:10px; width:100%; text-align:center; }
+    .history-container { margin-top:20px; max-height:300px; overflow-y:auto;
+                         background:var(--container-bg-light); padding:10px; border-radius:4px;
+                         border:1px solid #ccc; display:none; }
+    body.dark-mode .history-container { background:var(--container-bg-dark); border:1px solid #555; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:5px; text-align:left; border-bottom:1px solid #ddd; font-size:0.9rem; }
+    @media(max-width:480px){ .container{margin:10px;padding:15px;} h1{font-size:1.3rem;} }
+  
+#theme-toggle {
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 999;
+  width: 40px;
+  height: 40px;
+  padding: 5px;
+}
+#theme-toggle svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+  color: #444;
+}
+body.dark-mode #theme-toggle svg {
+  color: #f0f0f0;
+}
+
+</style>
+</head>
+<body>
+  <button id="theme-toggle" aria-label="Toggle theme">
+    <svg id="icon" viewBox="0 0 24 24"><path/></svg>
+  </button>
+  <div class="container">
+    <h1>সাব মিটার বিল ক্যালকুলেটর</h1>
+    <div class="field">
+      <label for="reading_date">তারিখ:</label>
+      <input type="date" id="reading_date">
+    </div>
+    <div class="field">
+      <label for="prev">A- সাব মিটারের পূর্বের রিডিং</label>
+      <input type="number" id="prev">
+    </div>
+    <div class="field">
+      <label for="current">B- সাব মিটারের বর্তমান রিডিং</label>
+      <input type="number" id="current">
+    </div>
+    <div class="field">
+      <label for="main_reading">C- মেইন মিটারের বর্তমান রিডিং</label>
+      <input type="number" id="main_reading">
+    </div>
+    <div class="field">
+      <label for="main_bill">D- মেইন মিটারের বর্তমান বিল</label>
+      <input type="number" id="main_bill">
+    </div>
+    <div class="result" id="result">X= সাব মিটারের বিল: 0</div>
+    <div class="buttons">
+      <button class="btn" id="save-btn">Save</button>
+      <button class="btn" id="show-history-btn">Show History</button>
+      
+      <button class="btn btn-clear" id="clear-btn">Clear</button>
+    </div>
+    <div class="history-container" id="history-container">
+      <table>
+        <thead><tr><th>তারিখ</th><th>A</th><th>B</th><th>C</th><th>D</th><th>X</th></tr></thead>
+        <tbody id="history-body"></tbody>
+      </table>
+      <button class="btn btn-history-clear" id="clear-history-btn">Clear History</button>
+        <button class="btn btn" id="export-btn">Export</button>
+    </div>
+  </div>
+  <script>
+    const themeToggle = document.getElementById('theme-toggle');
+    const icon = document.getElementById('icon');
+    const moon = '<path d="M21 12.79A9 9 0 0111.21 3 7 7 0 0012 17a7 7 0 009-4.21z"/>';
+    const sun  = '<circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2m11-11h-2M3 12H1m16.95-6.95l-1.414 1.414M6.364 17.657l-1.414 1.414m0-12.728l1.414 1.414M17.657 17.657l1.414 1.414"/>';
+    icon.innerHTML = moon;
+    themeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('dark-mode');
+      icon.innerHTML = document.body.classList.contains('dark-mode') ? sun : moon;
+    });
+
+    const fields = ['reading_date','prev','current','main_reading','main_bill'];
+    const resultDiv = document.getElementById('result');
+    const saveBtn = document.getElementById('save-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const showHistoryBtn = document.getElementById('show-history-btn');
+    const exportBtn = document.getElementById('export-btn');
+    const historyContainer = document.getElementById('history-container');
+    const historyBody = document.getElementById('history-body');
+    const clearHistoryBtn = document.getElementById('clear-history-btn');
+
+    fields.forEach(id => {
+      const el = document.getElementById(id);
+      const saved = localStorage.getItem(id);
+      if(saved) el.value = saved;
+      el.addEventListener('input', () => {
+        localStorage.setItem(id, el.value);
+        calculateBill();
+      });
+    });
+
+    function calculateBill() {
+      const prev = parseFloat(localStorage.getItem('prev')||0);
+      const current = parseFloat(localStorage.getItem('current')||0);
+      const mainR = parseFloat(localStorage.getItem('main_reading')||0);
+      const mainB = parseFloat(localStorage.getItem('main_bill')||0);
+      if(prev && current && mainR) {
+        const bill = ((current - prev) * mainB) / mainR;
+        resultDiv.textContent = 'X= সাব মিটারের বিল: ' + bill.toFixed(2);
+      } else {
+        resultDiv.textContent = 'X= সাব মিটারের বিল: 0';
+      }
+    }
+
+    function getHistory() {
+      return JSON.parse(localStorage.getItem('history') || '[]');
+    }
+    function saveHistory(h) {
+      localStorage.setItem('history', JSON.stringify(h));
+    }
+    function renderHistory() {
+      historyBody.innerHTML = '';
+      getHistory().forEach(entry => {
+        const row = document.createElement('tr');
+        ['date','prev','current','main_reading','main_bill','bill'].forEach(key => {
+          const td = document.createElement('td');
+          td.textContent = entry[key];
+          row.appendChild(td);
+        });
+        historyBody.appendChild(row);
+      });
+    }
+
+    saveBtn.addEventListener('click', () => {
+      const date = document.getElementById('reading_date').value;
+      const prev = document.getElementById('prev').value;
+      const current = document.getElementById('current').value;
+      const main_reading = document.getElementById('main_reading').value;
+      const main_bill = document.getElementById('main_bill').value;
+      const billText = resultDiv.textContent.split(': ')[1] || '0';
+      if(!date) return alert('Please select a date');
+      const entry = {date, prev, current, main_reading, main_bill, bill: billText};
+      const h = getHistory(); h.push(entry); saveHistory(h); renderHistory();
+    });
+
+    clearBtn.addEventListener('click', () => {
+      fields.forEach(id => {
+        localStorage.removeItem(id);
+        document.getElementById(id).value = '';
+      });
+      calculateBill();
+    });
+
+    showHistoryBtn.addEventListener('click', () => {
+      historyContainer.style.display = historyContainer.style.display === 'block' ? 'none' : 'block';
+      renderHistory();
+    });
+
+    clearHistoryBtn.addEventListener('click', () => {
+      if(confirm('আপনি কি নিশ্চিত যে আপনি সব হিস্টোরি মুছতে চান?')) {
+        localStorage.removeItem('history');
+        renderHistory();
+      }
+    });
+
+    exportBtn.addEventListener('click', () => {
+      const h = getHistory();
+      if(!h.length) return alert('No history to export');
+      const csv = ['তারিখ,A,B,C,D,X', ...h.map(e => [e.date, e.prev, e.current, e.main_reading, e.main_bill, e.bill].join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url;
+      a.download = 'history.csv'; document.body.appendChild(a);
+      a.click(); URL.revokeObjectURL(url); a.remove();
+    });
+
+    calculateBill();
+  </script>
+</body>
+</html>
